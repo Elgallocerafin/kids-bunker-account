@@ -1,0 +1,237 @@
+#include "hookapi.h"
+
+// Marca de tiempo de Xahau para la apertura
+#define FECHA_MAYORIA_EDAD 5000
+
+// ============================================================================
+// CONFIGURACIÓN DE TUTORES (Introduce tus 20 bytes HEX reales aquí)
+// ============================================================================
+#define TUTOR_1 { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14 }
+#define TUTOR_2 { 0x1A, 0x2B, 0x3C, 0x4D, 0x5E, 0x6F, 0x7A, 0x8B, 0x9C, 0x0D, 0x1E, 0x2F, 0x3A, 0x4B, 0x5C, 0x6D, 0x7E, 0x8F, 0x9A, 0x0B }
+#define TUTOR_3 { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD }
+
+int64_t hook(uint32_t reserved) {
+    
+    _g(1, 1); 
+
+    int64_t txn_type = otxn_type();
+
+    // SetHook = 22
+    if (txn_type == 22) {
+        accept(0, 0, 0); 
+    }
+
+    uint8_t emisor[20];
+    otxn_field((uint32_t)emisor, 20, sfAccount);
+
+    uint8_t cuenta_niña[20];
+    hook_account((uint32_t)cuenta_niña, 20);
+
+    // Comparación lineal de 20 bytes original (Evita llamadas a memcmp)
+    int es_la_niña = (
+        *(uint32_t*)(emisor)      == *(uint32_t*)(cuenta_niña)      &&
+        *(uint32_t*)(emisor + 4)  == *(uint32_t*)(cuenta_niña + 4)  &&
+        *(uint32_t*)(emisor + 8)  == *(uint32_t*)(cuenta_niña + 8)  &&
+        *(uint32_t*)(emisor + 12) == *(uint32_t*)(cuenta_niña + 12) &&
+        *(uint32_t*)(emisor + 16) == *(uint32_t*)(cuenta_niña + 16)
+    );
+
+    // ========================================================================
+    // RUTA A: ENTRADA DE FONDOS Y REGISTRO DE VOTOS
+    // ========================================================================
+    if (!es_la_niña) {
+        if (txn_type != ttPAYMENT) {
+            accept(0, 0, 0);
+        }
+
+        uint8_t memo_raw[64]; 
+        int64_t memo_len = otxn_field((uint32_t)memo_raw, sizeof(memo_raw), sfMemos);
+
+        int tiene_voto_memo = 0;
+        
+        if (memo_len >= 4) {
+            if ((memo_raw[0] == 'V' && memo_raw[1] == 'O' && memo_raw[2] == 'T' && memo_raw[3] == 'O') ||
+                (memo_raw[1] == 'V' && memo_raw[2] == 'O' && memo_raw[3] == 'T' && memo_raw[4] == 'O') ||
+                (memo_raw[2] == 'V' && memo_raw[3] == 'O' && memo_raw[4] == 'T' && memo_raw[5] == 'O') ||
+                (memo_raw[3] == 'V' && memo_raw[4] == 'O' && memo_raw[5] == 'T' && memo_raw[6] == 'O') ||
+                (memo_raw[4] == 'V' && memo_raw[5] == 'O' && memo_raw[6] == 'T' && memo_raw[7] == 'O') ||
+                (memo_raw[5] == 'V' && memo_raw[6] == 'O' && memo_raw[7] == 'T' && memo_raw[8] == 'O') ||
+                (memo_raw[6] == 'V' && memo_raw[7] == 'O' && memo_raw[8] == 'T' && memo_raw[9] == 'O') ||
+                (memo_raw[7] == 'V' && memo_raw[8] == 'O' && memo_raw[9] == 'T' && memo_raw[10] == 'O') ||
+                (memo_raw[8] == 'V' && memo_raw[9] == 'O' && memo_raw[10] == 'T' && memo_raw[11] == 'O') ||
+                (memo_raw[9] == 'V' && memo_raw[10] == 'O' && memo_raw[11] == 'T' && memo_raw[12] == 'O') ||
+                (memo_raw[10] == 'V' && memo_raw[11] == 'O' && memo_raw[12] == 'T' && memo_raw[13] == 'O') ||
+                (memo_raw[11] == 'V' && memo_raw[12] == 'O' && memo_raw[13] == 'T' && memo_raw[14] == 'O') ||
+                (memo_raw[12] == 'V' && memo_raw[13] == 'O' && memo_raw[14] == 'T' && memo_raw[15] == 'O') ||
+                (memo_raw[13] == 'V' && memo_raw[14] == 'O' && memo_raw[15] == 'T' && memo_raw[16] == 'O') ||
+                (memo_raw[14] == 'V' && memo_raw[15] == 'O' && memo_raw[16] == 'T' && memo_raw[17] == 'O') ||
+                (memo_raw[15] == 'V' && memo_raw[16] == 'O' && memo_raw[17] == 'T' && memo_raw[18] == 'O')) {
+                tiene_voto_memo = 1;
+            }
+        }
+
+        if (tiene_voto_memo) {
+            uint8_t t1[20] = TUTOR_1;
+            uint8_t t2[20] = TUTOR_2;
+            uint8_t t3[20] = TUTOR_3;
+
+            int coincide_t1 = (
+                *(uint32_t*)(emisor) == *(uint32_t*)(t1) && *(uint32_t*)(emisor + 4) == *(uint32_t*)(t1 + 4) &&
+                *(uint32_t*)(emisor + 8) == *(uint32_t*)(t1 + 8) && *(uint32_t*)(emisor + 12) == *(uint32_t*)(t1 + 12) &&
+                *(uint32_t*)(emisor + 16) == *(uint32_t*)(t1 + 16)
+            );
+
+            int coincide_t2 = (
+                *(uint32_t*)(emisor) == *(uint32_t*)(t2) && *(uint32_t*)(emisor + 4) == *(uint32_t*)(t2 + 4) &&
+                *(uint32_t*)(emisor + 8) == *(uint32_t*)(t2 + 8) && *(uint32_t*)(emisor + 12) == *(uint32_t*)(t2 + 12) &&
+                *(uint32_t*)(emisor + 16) == *(uint32_t*)(t2 + 16)
+            );
+
+            int coincide_t3 = (
+                *(uint32_t*)(emisor) == *(uint32_t*)(t3) && *(uint32_t*)(emisor + 4) == *(uint32_t*)(t3 + 4) &&
+                *(uint32_t*)(emisor + 8) == *(uint32_t*)(t3 + 8) && *(uint32_t*)(emisor + 12) == *(uint32_t*)(t3 + 12) &&
+                *(uint32_t*)(emisor + 16) == *(uint32_t*)(t3 + 16)
+            );
+
+            if (!coincide_t1 && !coincide_t2 && !coincide_t3) {
+                rollback(SBUF("Voto no autorizado"), 1);
+            }
+
+            uint8_t ya_voto = 0;
+            state((uint32_t)&ya_voto, 1, (uint32_t)emisor, 20);
+            
+            if (ya_voto == 1) {
+                rollback(SBUF("Tutor ya voto"), 5);
+            } else {
+                uint8_t voto_marcado = 1;
+                state_set((uint32_t)&voto_marcado, 1, (uint32_t)emisor, 20);
+                trace(SBUF("[VOTO] Registrado en el State."), 0, 0, 1);
+            }
+        }
+
+        accept(0, 0, 0);
+    }
+
+    // ========================================================================
+    // RUTA B: CONTROL DE SALIDA Y AUTO-DESTRUCCIÓN (La Niña opera)
+    // ========================================================================
+    if (ledger_last_time() < FECHA_MAYORIA_EDAD) {
+        rollback(SBUF("Bunker bloqueado: Menor de edad"), 2);
+    }
+
+    uint8_t t1[20] = TUTOR_1;
+    uint8_t t2[20] = TUTOR_2;
+    uint8_t t3[20] = TUTOR_3;
+    
+    uint8_t voto_t1 = 0;
+    uint8_t voto_t2 = 0;
+    uint8_t voto_t3 = 0;
+    
+    state((uint32_t)&voto_t1, 1, (uint32_t)t1, 20);
+    state((uint32_t)&voto_t2, 1, (uint32_t)t2, 20);
+    state((uint32_t)&voto_t3, 1, (uint32_t)t3, 20);
+
+    int votos_totales = 0;
+    if (voto_t1 == 1) votos_totales++;
+    if (voto_t2 == 1) votos_totales++;
+    if (voto_t3 == 1) votos_totales++;
+
+    if (votos_totales < 2) {
+        rollback(SBUF("Bunker bloqueado: Faltan votos"), 3);
+    }
+
+    trace(SBUF("[LIBERACION] Preparando transaccion..."), 0, 0, 1);
+
+    // 1. Reservar el slot de salida
+    etxn_reserve(1);
+
+    // 2. Calcular los ledgers activos para la tx emitida
+    uint32_t current_ledger = (uint32_t)ledger_seq();
+    uint32_t fls = current_ledger + 1;
+    uint32_t lls = fls + 4;
+
+    // 3. Estructurar buffer completo de 256 bytes
+    uint8_t tx_borrado[256];
+
+    // sfTransactionType = ttSET_HOOK (3 bytes: 0x12, 0x00, 0x16)
+    tx_borrado[0] = 0x12; tx_borrado[1] = 0x00; tx_borrado[2] = 0x16;
+
+    // sfSequence = 0 (5 bytes: 0x24, 0x00, 0x00, 0x00, 0x00)
+    tx_borrado[3] = 0x24; tx_borrado[4] = 0x00; tx_borrado[5] = 0x00; tx_borrado[6] = 0x00; tx_borrado[7] = 0x00;
+
+    // sfFirstLedgerSequence (6 bytes: 0x20, 0x1A + 4 bytes Big Endian)
+    tx_borrado[8] = 0x20; tx_borrado[9] = 0x1A;
+    tx_borrado[10] = (uint8_t)((fls >> 24) & 0xFF);
+    tx_borrado[11] = (uint8_t)((fls >> 16) & 0xFF);
+    tx_borrado[12] = (uint8_t)((fls >> 8) & 0xFF);
+    tx_borrado[13] = (uint8_t)(fls & 0xFF);
+
+    // sfLastLedgerSequence (6 bytes: 0x20, 0x1B + 4 bytes Big Endian)
+    tx_borrado[14] = 0x20; tx_borrado[15] = 0x1B;
+    tx_borrado[16] = (uint8_t)((lls >> 24) & 0xFF);
+    tx_borrado[17] = (uint8_t)((lls >> 16) & 0xFF);
+    tx_borrado[18] = (uint8_t)((lls >> 8) & 0xFF);
+    tx_borrado[19] = (uint8_t)(lls & 0xFF);
+
+    // sfFee (9 bytes: reservado con prefijo 0x68 en offset 20)
+    // Hardcodeamos exactamente 10,000 drops = 0x4000000000002710
+    tx_borrado[20] = 0x68;
+    tx_borrado[21] = 0x40; 
+    tx_borrado[22] = 0x00; tx_borrado[23] = 0x00; tx_borrado[24] = 0x00;
+    tx_borrado[25] = 0x00; tx_borrado[26] = 0x00; tx_borrado[27] = 0x27; tx_borrado[28] = 0x10;
+
+    // sfSigningPubKey = empty (2 bytes: 0x73, 0x00)
+    tx_borrado[29] = 0x73; tx_borrado[30] = 0x00;
+
+    // sfAccount (22 bytes: prefijo 0x81 + longitud de AccountID 0x14 + 20 bytes de la cuenta)
+    tx_borrado[31] = 0x81;
+    tx_borrado[32] = 0x14; 
+    tx_borrado[33] = cuenta_niña[0];  tx_borrado[34] = cuenta_niña[1];  tx_borrado[35] = cuenta_niña[2];  tx_borrado[36] = cuenta_niña[3];
+    tx_borrado[37] = cuenta_niña[4];  tx_borrado[38] = cuenta_niña[5];  tx_borrado[39] = cuenta_niña[6];  tx_borrado[40] = cuenta_niña[7];
+    tx_borrado[41] = cuenta_niña[8];  tx_borrado[42] = cuenta_niña[9];  tx_borrado[43] = cuenta_niña[10]; tx_borrado[44] = cuenta_niña[11];
+    tx_borrado[45] = cuenta_niña[12]; tx_borrado[46] = cuenta_niña[13]; tx_borrado[47] = cuenta_niña[14]; tx_borrado[48] = cuenta_niña[15];
+    tx_borrado[49] = cuenta_niña[16]; tx_borrado[50] = cuenta_niña[17]; tx_borrado[51] = cuenta_niña[18]; tx_borrado[52] = cuenta_niña[19];
+
+    // 4. Inyectar dinámicamente sfEmitDetails (en el offset 53)
+    int64_t emit_details_len = etxn_details((uint32_t)(tx_borrado + 53), 138);
+    if (emit_details_len < 0) {
+        rollback(SBUF("Fallo al inyectar emit_details"), 6);
+    }
+
+    // 5. Estructurar sfHooks para desinstalar (11 bytes en total justo después de sfEmitDetails)
+    uint32_t hooks_offset = 53 + (uint32_t)emit_details_len;
+    
+    tx_borrado[hooks_offset]     = 0xFB;         // sfHooks (STArray Start)
+    tx_borrado[hooks_offset + 1] = 0xEE;         // sfHook (STObject Start)
+    tx_borrado[hooks_offset + 2] = 0x22;         // sfFlags tag (Type 2, Field 2)
+    tx_borrado[hooks_offset + 3] = 0x00;         // sfFlags value byte 0
+    tx_borrado[hooks_offset + 4] = 0x00;         // sfFlags value byte 1
+    tx_borrado[hooks_offset + 5] = 0x00;         // sfFlags value byte 2
+    tx_borrado[hooks_offset + 6] = 0x01;         // sfFlags value byte 3 (hsfOVERRIDE = 1)
+    tx_borrado[hooks_offset + 7] = 0x7B;         // sfCreateCode tag (Type 7, Field 11)
+    tx_borrado[hooks_offset + 8] = 0x00;         // sfCreateCode empty length
+    tx_borrado[hooks_offset + 9] = 0xE1;         // sfHook (STObject End)
+    tx_borrado[hooks_offset + 10] = 0xF1;        // sfHooks (STArray End)
+
+    // Longitud total exacta de la transacción construida dinámicamente
+    uint32_t tx_len = hooks_offset + 11;
+
+    uint8_t tx_id[32];
+
+    // 6. Emitir transacción
+    int64_t resultado_emit = emit((uint32_t)tx_id, 32, (uint32_t)tx_borrado, tx_len);
+    if (resultado_emit < 0) {
+        rollback(SBUF("Fallo al emitir autodestruccion"), 4);
+    }
+
+    // Limpieza de almacenamiento del state de los tutores
+    state_set(0, 0, (uint32_t)t1, 20);
+    state_set(0, 0, (uint32_t)t2, 20);
+    state_set(0, 0, (uint32_t)t3, 20);
+
+    trace(SBUF("[EXITO] Hook borrado. Fondos liberados."), 0, 0, 1);
+    
+    accept(0, 0, 0);
+
+    return 0;
+}
